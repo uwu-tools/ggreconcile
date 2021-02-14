@@ -81,11 +81,15 @@ func run(opts *Options) error {
 		return errors.Wrap(err, "creating an auth client")
 	}
 
-	adminSvc := authClient.AdminSvc
-	groupsSettingsSvc := authClient.GroupsSettingsSvc
+	// TODO: Set this in a client instead
+	gc := &groups.Client{
+		Config:     &groupsConfig,
+		UtilConfig: &config,
+		AuthClient: authClient,
+	}
 
 	if printConfig {
-		err = groups.PrintMembersAndSettings(adminSvc, groupsSettingsSvc)
+		err = gc.PrintMembersAndSettings()
 		if err != nil {
 			return errors.Wrap(err, "printing group members and settings")
 		}
@@ -99,43 +103,50 @@ func run(opts *Options) error {
 			log.Fatal(fmt.Sprintf("Group has no email-id: %#v", g))
 		}
 
-		err = groups.CreateOrUpdateIfNecessary(config, adminSvc, g.EmailId, g.Name, g.Description)
+		err = gc.CreateOrUpdateIfNecessary(g.EmailId, g.Name, g.Description)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.UpdateSettings(config, groupsSettingsSvc, g.EmailId, g.Settings)
+
+		err = gc.UpdateSettings(g.EmailId, g.Settings)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Owners, "OWNER")
+
+		err = gc.AddOrUpdateMember(g.EmailId, g.Owners, "OWNER")
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Managers, "MANAGER")
+
+		err = gc.AddOrUpdateMember(g.EmailId, g.Managers, "MANAGER")
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Members, "MEMBER")
+
+		err = gc.AddOrUpdateMember(g.EmailId, g.Members, "MEMBER")
 		if err != nil {
 			log.Println(err)
 		}
+
 		if g.Settings["ReconcileMembers"] == "true" {
 			members := append(g.Owners, g.Managers...)
 			members = append(members, g.Members...)
-			err = groups.RemoveMembers(config, adminSvc, g.EmailId, members)
+
+			err = gc.RemoveMembers(g.EmailId, members)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
 			members := append(g.Owners, g.Managers...)
-			err = groups.RemoveOwnerOrManagers(config, adminSvc, g.EmailId, members)
+
+			err = gc.RemoveOwnerOrManagers(g.EmailId, members)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 	}
 
-	err = groups.DeleteIfNecessary(config, groupsConfig, adminSvc)
+	err = gc.DeleteIfNecessary()
 	if err != nil {
 		log.Fatal(err)
 	}
