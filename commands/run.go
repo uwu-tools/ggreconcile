@@ -35,6 +35,7 @@ import (
 	"github.com/justaugustus/ggreconcile/util"
 )
 
+// TODO: Move this into cobra command
 func Usage() {
 	fmt.Fprintf(os.Stderr, `
 Usage: %s [-config <config-yaml-file>] [--confirm]
@@ -46,23 +47,17 @@ Command line flags override config values.
 var config util.Config
 var groupsConfig groups.Config
 
-var verbose = flag.Bool("v", false, "log extra information")
+func run(opts *Options) error {
+	configPath := opts.config
+	printConfig := opts.print
 
-func Run() {
-	configFilePath := flag.String("config", "config.yaml", "the config file in yaml format")
-	confirmChanges := flag.Bool("confirm", false, "false by default means that we do not push anything to google groups")
-	printConfig := flag.Bool("print", false, "print the existing group information")
-
-	flag.Usage = Usage
-	flag.Parse()
-
-	err := readConfig(*configFilePath, *confirmChanges)
+	err := readConfig(opts)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// rootDir contains groups.yaml files
-	rootDir := filepath.Dir(*configFilePath)
+	rootDir := filepath.Dir(configPath)
 	if config.GroupsPath != nil {
 		if !filepath.IsAbs(*config.GroupsPath) {
 			log.Fatalf("groups-path \"%s\" must be an absolute path", *config.GroupsPath)
@@ -100,12 +95,13 @@ func Run() {
 		log.Fatalf("Unable to retrieve groupssettings Service %v", err)
 	}
 
-	if *printConfig {
+	if printConfig {
 		err = groups.PrintMembersAndSettings(srv, srv2)
 		if err != nil {
 			log.Fatal(err)
 		}
-		return
+
+		return nil
 	}
 
 	log.Println(" ======================= Updates =========================")
@@ -149,23 +145,31 @@ func Run() {
 			}
 		}
 	}
+
 	err = groups.DeleteIfNecessary(config, groupsConfig, srv)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return nil
 }
 
-func readConfig(configFilePath string, confirmChanges bool) error {
-	if *verbose {
-		log.Printf("reading config file %s", configFilePath)
-	}
-	content, err := ioutil.ReadFile(configFilePath)
+func readConfig(opts *Options) error {
+	configPath := opts.config
+	confirmChanges := opts.confirm
+
+	// TODO: Set this to debug only
+	log.Printf("reading config file %s", configPath)
+
+	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("error reading config file %s: %v", configFilePath, err)
+		return fmt.Errorf("error reading config file %s: %v", configPath, err)
 	}
+
 	if err = yaml.Unmarshal(content, &config); err != nil {
-		return fmt.Errorf("error parsing config file %s: %v", configFilePath, err)
+		return fmt.Errorf("error parsing config file %s: %v", configPath, err)
 	}
+
 	config.ConfirmChanges = confirmChanges
 	return err
 }

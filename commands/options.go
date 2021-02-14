@@ -14,16 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package commands
 
-import (
-	"github.com/sirupsen/logrus"
-
-	"github.com/justaugustus/ggreconcile/commands"
-)
-
-func main() {
-	if err := commands.New().Execute(); err != nil {
-		logrus.Fatalf("error during command execution: %v", err)
-	}
+type Options struct {
+	logLevel string
+	config   string
+	confirm  bool
+	print    bool
 }
