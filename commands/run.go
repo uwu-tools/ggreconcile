@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/justaugustus/ggreconcile/auth"
@@ -158,8 +159,7 @@ func readConfig(opts *Options) error {
 	configPath := opts.config
 	confirmChanges := opts.confirm
 
-	// TODO: Set this to debug only
-	log.Printf("reading config file %s", configPath)
+	logrus.Debugf("reading config file %s", configPath)
 
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {

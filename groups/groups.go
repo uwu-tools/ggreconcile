@@ -17,7 +17,6 @@ limitations under the License.
 package groups
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,6 +26,7 @@ import (
 	"reflect"
 
 	"github.com/justaugustus/ggreconcile/util"
+	"github.com/sirupsen/logrus"
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/groupssettings/v1"
@@ -41,8 +41,6 @@ type Client struct {
 	UtilConfig *util.Config
 	AuthClient *auth.Client
 }
-
-var verbose = flag.Bool("v", false, "log extra information")
 
 type Config struct {
 	// This file has the list of groups in the Google Workspace that can be used
@@ -71,15 +69,11 @@ type GoogleGroup struct {
 // all directories and files. It reads the groups.Config from all groups.yaml
 // files and adds the groups in each groups.Config to config.Groups.
 func ReadConfig(rootDir string, config *Config) error {
-	if *verbose {
-		log.Printf("reading groups.yaml files recursively at %s", rootDir)
-	}
+	logrus.Debugf("reading groups.yaml files recursively at %s", rootDir)
 
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if filepath.Base(path) == "groups.yaml" {
-			if *verbose {
-				log.Printf("reading group file %s", path)
-			}
+			logrus.Debugf("reading group file %s", path)
 
 			var groupsConfigAtPath Config
 			var content []byte
@@ -188,9 +182,7 @@ func (c *Client) CreateOrUpdateIfNecessary(
 ) error {
 	adminSvc := c.AuthClient.AdminSvc
 
-	if *verbose {
-		log.Printf("createOrUpdateGroupIfNecessary %q", groupEmailId)
-	}
+	logrus.Debugf("createOrUpdateGroupIfNecessary %q", groupEmailId)
 
 	group, err := adminSvc.Groups.Get(groupEmailId).Do()
 	if err != nil {
@@ -281,9 +273,7 @@ func (c *Client) DeleteIfNecessary() error {
 
 		// We did not find the group in our groups.xml, so delete the group
 		if c.UtilConfig.ConfirmChanges {
-			if *verbose {
-				log.Printf("deleting group %s", g.Email)
-			}
+			logrus.Debugf("deleting group %s", g.Email)
 
 			err := adminSvc.Groups.Delete(g.Email).Do()
 			if err != nil {
@@ -306,9 +296,7 @@ func (c *Client) UpdateSettings(
 ) error {
 	groupsSettingsSvc := c.AuthClient.GroupsSettingsSvc
 
-	if *verbose {
-		log.Printf("updateGroupSettings %q", groupEmailId)
-	}
+	logrus.Debugf("updateGroupSettings %q", groupEmailId)
 
 	g2, err := groupsSettingsSvc.Groups.Get(groupEmailId).Do()
 	if err != nil {
@@ -393,9 +381,7 @@ func (c *Client) AddOrUpdateMember(
 	adminSvc := c.AuthClient.AdminSvc
 	config := c.UtilConfig
 
-	if *verbose {
-		log.Printf("addOrUpdateMemberToGroup %s %q %v", role, groupEmailId, members)
-	}
+	logrus.Debugf("addOrUpdateMemberToGroup %s %q %v", role, groupEmailId, members)
 
 	l, err := adminSvc.Members.List(groupEmailId).Do()
 	if err != nil {
@@ -461,9 +447,7 @@ func (c *Client) RemoveOwnerOrManagers(groupEmailId string, members []string) er
 	adminSvc := c.AuthClient.AdminSvc
 	config := c.UtilConfig
 
-	if *verbose {
-		log.Printf("removeOwnerOrManagersGroup %q %v", groupEmailId, members)
-	}
+	logrus.Debugf("removeOwnerOrManagersGroup %q %v", groupEmailId, members)
 
 	l, err := adminSvc.Members.List(groupEmailId).Do()
 	if err != nil {
@@ -508,9 +492,7 @@ func (c *Client) RemoveMembers(groupEmailId string, members []string) error {
 	adminSvc := c.AuthClient.AdminSvc
 	config := c.UtilConfig
 
-	if *verbose {
-		log.Printf("removeMembersFromGroup %q %v", groupEmailId, members)
-	}
+	logrus.Debugf("removeMembersFromGroup %q %v", groupEmailId, members)
 
 	l, err := adminSvc.Members.List(groupEmailId).Do()
 	if err != nil {
