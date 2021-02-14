@@ -1,0 +1,7 @@
+# Configuration for the <foo project> Google Groups setup
+
+# Secret version of the service account key to use
+secret-version: projects/<foo-project>/secrets/<secret-name>/versions/latest
+
+# Email ID of the bot service account
+bot-id: <bot>@foo.project

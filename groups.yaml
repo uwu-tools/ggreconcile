@@ -1,0 +1,20 @@
+# This file has the list of groups in foo.project Google Workspace org that we
+# use for granting permissions to various resources.
+groups:
+  - email-id: leads@foo.project
+    name: leads
+    description: |-
+      SIG/WG/UG Leads
+    settings:
+      AllowWebPosting: "true"
+      WhoCanViewGroup: "ANYONE_CAN_VIEW"
+      WhoCanDiscoverGroup: "ANYONE_CAN_DISCOVER"
+      WhoCanPostMessage: "ANYONE_CAN_POST"
+      MessageModerationLevel: "MODERATE_NON_MEMBERS"
+      ReconcileMembers: "true"
+    owners:
+      - contributors@foo.project
+    managers:
+      - contributors@foo.project
+    members:
+      - contributors@foo.project
