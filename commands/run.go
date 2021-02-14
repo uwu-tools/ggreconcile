@@ -17,6 +17,7 @@ limitations under the License.
 package commands
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -24,13 +25,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
-	admin "google.golang.org/api/admin/directory/v1"
-	"google.golang.org/api/groupssettings/v1"
-	"google.golang.org/api/option"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 
+	"github.com/justaugustus/ggreconcile/auth"
 	"github.com/justaugustus/ggreconcile/groups"
 	"github.com/justaugustus/ggreconcile/util"
 )
@@ -70,35 +68,26 @@ func run(opts *Options) error {
 		log.Fatal(err)
 	}
 
-	serviceAccountKey, err := util.AccessSecretVersion(config.SecretVersion)
-
-	credential, err := google.JWTConfigFromJSON(serviceAccountKey, admin.AdminDirectoryUserReadonlyScope,
-		admin.AdminDirectoryGroupScope,
-		admin.AdminDirectoryGroupMemberScope,
-		groupssettings.AppsGroupsSettingsScope)
-	if err != nil {
-		log.Fatalf("Unable to authenticate using key in secret-version %s, %v", config.SecretVersion, err)
-	}
-	credential.Subject = config.BotID
-
-	ctx := context.Background()
-	client := credential.Client(ctx)
-	clientOption := option.WithHTTPClient(client)
-
-	srv, err := admin.NewService(ctx, clientOption)
-	if err != nil {
-		log.Fatalf("Unable to retrieve directory Client %v", err)
+	// TODO: Set this in a client instead
+	authOptions := &auth.Options{
+		Ctx:           context.Background(),
+		BotID:         config.BotID,
+		SecretVersion: config.SecretVersion,
+		Scopes:        auth.DefaultScopes,
 	}
 
-	srv2, err := groupssettings.NewService(ctx, clientOption)
+	authClient, err := auth.NewClient(authOptions)
 	if err != nil {
-		log.Fatalf("Unable to retrieve groupssettings Service %v", err)
+		return errors.Wrap(err, "creating an auth client")
 	}
+
+	adminSvc := authClient.AdminSvc
+	groupsSettingsSvc := authClient.GroupsSettingsSvc
 
 	if printConfig {
-		err = groups.PrintMembersAndSettings(srv, srv2)
+		err = groups.PrintMembersAndSettings(adminSvc, groupsSettingsSvc)
 		if err != nil {
-			log.Fatal(err)
+			return errors.Wrap(err, "printing group members and settings")
 		}
 
 		return nil
@@ -110,43 +99,43 @@ func run(opts *Options) error {
 			log.Fatal(fmt.Sprintf("Group has no email-id: %#v", g))
 		}
 
-		err = groups.CreateOrUpdateIfNecessary(config, srv, g.EmailId, g.Name, g.Description)
+		err = groups.CreateOrUpdateIfNecessary(config, adminSvc, g.EmailId, g.Name, g.Description)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.UpdateSettings(config, srv2, g.EmailId, g.Settings)
+		err = groups.UpdateSettings(config, groupsSettingsSvc, g.EmailId, g.Settings)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, srv, g.EmailId, g.Owners, "OWNER")
+		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Owners, "OWNER")
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, srv, g.EmailId, g.Managers, "MANAGER")
+		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Managers, "MANAGER")
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = groups.AddOrUpdateMember(config, srv, g.EmailId, g.Members, "MEMBER")
+		err = groups.AddOrUpdateMember(config, adminSvc, g.EmailId, g.Members, "MEMBER")
 		if err != nil {
 			log.Println(err)
 		}
 		if g.Settings["ReconcileMembers"] == "true" {
 			members := append(g.Owners, g.Managers...)
 			members = append(members, g.Members...)
-			err = groups.RemoveMembers(config, srv, g.EmailId, members)
+			err = groups.RemoveMembers(config, adminSvc, g.EmailId, members)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
 			members := append(g.Owners, g.Managers...)
-			err = groups.RemoveOwnerOrManagers(config, srv, g.EmailId, members)
+			err = groups.RemoveOwnerOrManagers(config, adminSvc, g.EmailId, members)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 	}
 
-	err = groups.DeleteIfNecessary(config, groupsConfig, srv)
+	err = groups.DeleteIfNecessary(config, groupsConfig, adminSvc)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -17,12 +17,7 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
-
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
 // DeepCopySettings deepcopies a to b using json marshaling. This discards fields like
@@ -30,25 +25,4 @@ import (
 func DeepCopySettings(a, b interface{}) {
 	byt, _ := json.Marshal(a)
 	json.Unmarshal(byt, b)
-}
-
-// AccessSecretVersion accesses the payload for the given secret version if one exists
-// secretVersion is of the form projects/{project}/secrets/{secret}/versions/{version}
-func AccessSecretVersion(secretVersion string) ([]byte, error) {
-	ctx := context.Background()
-	client, err := secretmanager.NewClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create secretmanager client: %v", err)
-	}
-
-	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: secretVersion,
-	}
-
-	result, err := client.AccessSecretVersion(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to access secret version: %v", err)
-	}
-
-	return result.Payload.Data, nil
 }
