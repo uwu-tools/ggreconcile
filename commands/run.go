@@ -52,7 +52,7 @@ func run(opts *Options) error {
 
 	err := readConfig(opts)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrap(err, "reading config")
 	}
 
 	// rootDir contains groups.yaml files
@@ -61,12 +61,13 @@ func run(opts *Options) error {
 		if !filepath.IsAbs(*config.GroupsPath) {
 			log.Fatalf("groups-path \"%s\" must be an absolute path", *config.GroupsPath)
 		}
+
 		rootDir = *config.GroupsPath
 	}
 
 	err = groups.ReadConfig(rootDir, &groupsConfig)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrap(err, "reading groups config")
 	}
 
 	// TODO: Set this in a client instead
