@@ -1,4 +1,4 @@
-module k8s.io/k8s.io/groups
+module github.com/justaugustus/ggreconcile
 
 go 1.12
 

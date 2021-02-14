@@ -27,10 +27,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/justaugustus/ggreconcile/groups"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var cfg GroupsConfig
+var cfg groups.Config
 
 var groupsPath = flag.String("groups-path", "", "Directory containing groups.yaml files")
 
@@ -51,7 +52,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	if err := readGroupsConfig(*groupsPath, &cfg); err != nil {
+	if err := groups.ReadConfig(*groupsPath, &cfg); err != nil {
 		fmt.Printf("Could not load groups-file: %v\n", err)
 		os.Exit(1)
 	}
@@ -290,7 +291,7 @@ func TestGroupsWhichShouldSupportHistory(t *testing.T) {
 				)
 			} else if allowedWebPosting != "true" {
 				t.Errorf(
-					"group '%s': must have 'settings.allowedWebPosting = true'" +
+					"group '%s': must have 'settings.allowedWebPosting = true'"+
 						" but have 'settings.allowedWebPosting = %s' instead",
 					group.Name,
 					allowedWebPosting,
