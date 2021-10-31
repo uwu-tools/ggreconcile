@@ -1,4 +1,4 @@
-module github.com/inclusivenaming/ini-infra/groups
+module github.com/justaugustus/ggreconcile
 
 go 1.17
 
