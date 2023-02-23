@@ -21,8 +21,8 @@ require (
 	github.com/golang/protobuf v1.3.5 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	go.opencensus.io v0.22.3 // indirect
-	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
-	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.8 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/grpc v1.28.0 // indirect
 )
